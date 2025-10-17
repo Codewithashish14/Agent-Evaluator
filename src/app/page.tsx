@@ -26,7 +26,7 @@ export default function HomePage() {
     checkAuth()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       setUser(session?.user || null)
       if (session?.user) {
         await fetchUserProfile(session.user.id)
