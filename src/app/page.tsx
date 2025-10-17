@@ -9,6 +9,8 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [updateLoading, setUpdateLoading] = useState(false)
   const [editForm, setEditForm] = useState({
     name: '',
     email: ''
@@ -16,11 +18,17 @@ export default function HomePage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user || null)
-      
-      if (session?.user) {
-        await fetchUserProfile(session.user.id)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user || null)
+        
+        if (session?.user) {
+          await fetchUserProfile(session.user.id)
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+      } finally {
+        setLoading(false)
       }
     }
     checkAuth()
@@ -39,51 +47,60 @@ export default function HomePage() {
   }, [])
 
   const fetchUserProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching profile:', error)
-    }
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error)
+        return
+      }
 
-    if (data) {
-      setUserProfile(data)
-      setEditForm({
-        name: data.name || '',
-        email: data.email || user?.email || ''
-      })
-    } else {
-      // Create profile if doesn't exist
-      await createUserProfile(userId)
+      if (data) {
+        setUserProfile(data)
+        setEditForm({
+          name: data.name || '',
+          email: data.email || user?.email || ''
+        })
+      } else {
+        // Create profile if doesn't exist
+        await createUserProfile(userId)
+      }
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error)
     }
   }
 
   const createUserProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert([
-        {
-          id: userId,
-          email: user?.email,
-          name: user?.email?.split('@')[0] || 'User',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ])
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: userId,
+            email: user?.email,
+            name: user?.email?.split('@')[0] || 'User',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single()
 
-    if (error) {
-      console.error('Error creating profile:', error)
-    } else if (data) {
-      setUserProfile(data)
-      setEditForm({
-        name: data.name || '',
-        email: data.email || ''
-      })
+      if (error) {
+        console.error('Error creating profile:', error)
+      } else if (data) {
+        setUserProfile(data)
+        setEditForm({
+          name: data.name || '',
+          email: data.email || ''
+        })
+      }
+    } catch (error) {
+      console.error('Error in createUserProfile:', error)
     }
   }
 
@@ -91,20 +108,28 @@ export default function HomePage() {
     e.preventDefault()
     if (!user) return
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        name: editForm.name,
-        email: editForm.email,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id)
+    setUpdateLoading(true)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: editForm.name,
+          email: editForm.email,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
 
-    if (error) {
-      console.error('Error updating profile:', error)
-    } else {
+      if (error) {
+        throw new Error(error.message)
+      }
+
       await fetchUserProfile(user.id)
       setShowEditModal(false)
+    } catch (error: any) {
+      console.error('Error updating profile:', error)
+      alert('Failed to update profile: ' + error.message)
+    } finally {
+      setUpdateLoading(false)
     }
   }
 
@@ -117,10 +142,26 @@ export default function HomePage() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setUserProfile(null)
-    router.refresh()
+    try {
+      await supabase.auth.signOut()
+      setUser(null)
+      setUserProfile(null)
+      router.refresh()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -194,7 +235,8 @@ export default function HomePage() {
               <h3 className="text-lg sm:text-xl font-bold text-gray-900">Edit Profile</h3>
               <button
                 onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={updateLoading}
               >
                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -213,6 +255,8 @@ export default function HomePage() {
                   onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="Enter your name"
+                  required
+                  disabled={updateLoading}
                 />
               </div>
               
@@ -226,6 +270,8 @@ export default function HomePage() {
                   onChange={(e) => setEditForm({...editForm, email: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="Enter your email"
+                  required
+                  disabled={updateLoading}
                 />
               </div>
               
@@ -233,15 +279,27 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-colors text-sm sm:text-base"
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={updateLoading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  disabled={updateLoading}
                 >
-                  Save Changes
+                  {updateLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </button>
               </div>
             </form>

@@ -70,30 +70,30 @@ export default function DashboardPage() {
         // FIXED CALCULATIONS - Handle string/number conversion properly
         const totalEvals = evaluations.length;
         
-        // Convert scores to numbers and calculate average
-        const totalScore = evaluations.reduce((acc, evalItem) => {
+        // Convert scores to numbers and calculate average - FIXED TYPESCRIPT
+        const totalScore = evaluations.reduce((acc: number, evalItem: any) => {
           const score = parseFloat(evalItem.score);
           return acc + (isNaN(score) ? 0 : score);
         }, 0);
         
         const avgScore = (totalScore / totalEvals) * 100;
         
-        // Calculate average latency
-        const totalLatency = evaluations.reduce((acc, evalItem) => {
+        // Calculate average latency - FIXED TYPESCRIPT
+        const totalLatency = evaluations.reduce((acc: number, evalItem: any) => {
           const latency = parseInt(evalItem.latency_ms);
           return acc + (isNaN(latency) ? 0 : latency);
         }, 0);
         const avgLatency = totalLatency / totalEvals;
         
         // Calculate success rate (score > 0.7 = 70%)
-        const successfulEvals = evaluations.filter(evalItem => {
+        const successfulEvals = evaluations.filter((evalItem: any) => {
           const score = parseFloat(evalItem.score);
           return !isNaN(score) && score > 0.7;
         }).length;
         const successRate = (successfulEvals / totalEvals) * 100;
         
-        // Calculate total PII
-        const totalPII = evaluations.reduce((acc, evalItem) => {
+        // Calculate total PII - FIXED TYPESCRIPT
+        const totalPII = evaluations.reduce((acc: number, evalItem: any) => {
           const pii = parseInt(evalItem.pii_tokens_redacted);
           return acc + (isNaN(pii) ? 0 : pii);
         }, 0);
