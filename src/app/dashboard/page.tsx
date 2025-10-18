@@ -206,10 +206,10 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         {[
-          { label: 'Average Score', value: `${kpiData.avgScore.toFixed(1)}%`, color: 'green' },
-          { label: 'Avg Latency', value: kpiData.avgLatency < 1000 ? `${Math.round(kpiData.avgLatency)}ms` : `${(kpiData.avgLatency / 1000).toFixed(2)}s`, color: 'blue' },
-          { label: 'Success Rate', value: `${kpiData.successRate.toFixed(1)}%`, color: 'emerald' },
-          { label: 'PII Redactions', value: kpiData.piiRedactions.toString(), color: 'orange' },
+          { label: 'Average Score', value: `${kpiData.avgScore.toFixed(1)}%`, color: 'bg-green-500' },
+          { label: 'Avg Latency', value: kpiData.avgLatency < 1000 ? `${Math.round(kpiData.avgLatency)}ms` : `${(kpiData.avgLatency / 1000).toFixed(2)}s`, color: 'bg-blue-500' },
+          { label: 'Success Rate', value: `${kpiData.successRate.toFixed(1)}%`, color: 'bg-emerald-500' },
+          { label: 'PII Redactions', value: kpiData.piiRedactions.toString(), color: 'bg-orange-500' },
         ].map((kpi, index) => (
           <div 
             key={kpi.label}
@@ -221,7 +221,7 @@ export default function DashboardPage() {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-700">{kpi.label}</h3>
-              <div className={`w-4 h-4 bg-${kpi.color}-500 rounded-full`}></div>
+              <div className={`w-4 h-4 ${kpi.color} rounded-full`}></div>
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-2">{kpi.value}</p>
           </div>
@@ -235,9 +235,9 @@ export default function DashboardPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Score Distribution</h3>
           <div className="space-y-3">
             {[
-              { label: 'Excellent (80-100%)', count: scoreDistribution.excellent, color: 'green' },
-              { label: 'Good (60-79%)', count: scoreDistribution.good, color: 'yellow' },
-              { label: 'Poor (<60%)', count: scoreDistribution.poor, color: 'red' },
+              { label: 'Excellent (80-100%)', count: scoreDistribution.excellent, color: 'bg-green-500', bgColor: 'bg-green-100', textColor: 'text-green-800', barColor: 'bg-green-500' },
+              { label: 'Good (60-79%)', count: scoreDistribution.good, color: 'bg-yellow-500', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', barColor: 'bg-yellow-500' },
+              { label: 'Poor (<60%)', count: scoreDistribution.poor, color: 'bg-red-500', bgColor: 'bg-red-100', textColor: 'text-red-800', barColor: 'bg-red-500' },
             ].map((item, index) => (
               <div 
                 key={item.label}
@@ -246,14 +246,14 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className={`w-3 h-3 bg-${item.color}-500 rounded-full mr-2`}></div>
+                    <div className={`w-3 h-3 ${item.color} rounded-full mr-2`}></div>
                     <span className="text-sm text-gray-600">{item.label}</span>
                   </div>
                   <span className="font-medium text-gray-900">{item.count}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1 overflow-hidden">
                   <div 
-                    className={`bg-${item.color}-500 h-2 rounded-full transition-all duration-1000 ease-out`}
+                    className={`${item.barColor} h-2 rounded-full transition-all duration-1000 ease-out`}
                     style={{ 
                       width: `${(item.count / evaluations.length) * 100 || 0}%`,
                       animation: 'growWidth 1s ease-out'
@@ -324,6 +324,13 @@ export default function DashboardPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {evaluations.map((evalItem, index) => {
                   const score = normalizeScore(evalItem.score);
+                  // Define color classes based on score
+                  const scoreColorClass = score >= 80 
+                    ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                    : score >= 60 
+                    ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
+                    : 'bg-red-100 text-red-800 hover:bg-red-200';
+                  
                   return (
                     <tr 
                       key={evalItem.id}
@@ -345,11 +352,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div 
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-300 hover:scale-110 ${
-                            score >= 80 ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
-                            score >= 60 ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 
-                            'bg-red-100 text-red-800 hover:bg-red-200'
-                          }`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-300 hover:scale-110 ${scoreColorClass}`}
                         >
                           {score.toFixed(1)}%
                         </div>
